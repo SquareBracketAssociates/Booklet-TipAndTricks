@@ -53,7 +53,7 @@ What we did, you execute the VM, pass a Pharo image as parameter and then the fi
 
 !!!! Using the start up list
 
-Pharo infrastructure offers the possibility for classes to register themselves to a startup list. The system ensures the ==startUp== and ==shutDown== methods of the registered classes are executed during the start up and shut down of the system. 
+Pharo infrastructure offers the possibility for classes to register themselves to a startup list. The system ensures that  the ==startUp== and ==shutDown== methods of the registered classes are executed during the start up and shut down of the system. 
 
 Therefore you can register your own class in the system startup list and implement ==startUp== message to do whatever you want to do. The problem is that your class is not present in the distributed images of Pharo. Therefore you need to manually first load my own code and this is not optimal. In addition, it is better to keep the startUp list used for system level operations.
 
@@ -76,10 +76,12 @@ To know the locations that are visited to find start up files, you can execute t
 
 [[[
 StartupLoader preferencesGeneralFolder
-   File @ /Users/ducasse/Library/Preferences/pharo
+>>>
+File @ /Users/ducasse/Library/Preferences/pharo
 
 StartupLoader preferencesVersionFolder
- File @ /Users/ducasse/Library/Preferences/pharo/3.0
+>>>
+File @ /Users/ducasse/Library/Preferences/pharo/7.0
 ]]]
 
 The message ==preferencesGeneralFolder== returns the location for the startup scripts common to all Pharo versions. 
@@ -89,21 +91,20 @@ The location search order from the most general to the most specific are the fol
 
 !!!General preference folder
 General means that it applied to all Pharo versions. This folder is shared for all the images you open. 
-On Mac OSX and Pharo, it is =='Library/Preferences/pharo/==. In this place, ==StartupLoader== will load ALL existing ==.st== files. This type of startup is useful when we have something to execute for all images of all Pharo versions. 
+On Mac OSX and Pharo, it is =='Library/Preferences/pharo/==. In this place, ==StartupLoader== will load ""all"" existing ==.st== files. This type of startup is useful when we have something to execute for all images of all Pharo versions. 
 
 AuthorToDo SD: what is the location on linux an windows? Please add here.
 
 
 !!!!Preference version folder
-Now if you want to only get some actions executed for a specific version, define a folder with the version number inside the general preference folder. On Mac OS X, a specific 2.0 folder is ==Library/Preferences/pharo/2.0/'== in your user account. This type of startup is useful when we have something to execute for all images of a specific Pharo version.
+Now if you want to only get some actions executed for a specific version, define a folder with the version number inside the general preference folder. On Mac OS X, a specific 6.0 folder is ==Library/Preferences/pharo/6.0/'== in your user account. This type of startup is useful when we have something to execute for all images of a specific Pharo version.
 
 !!!!The image folder
 The startup only searches for a file called =='startup.st'==. So if you have such a file in the same directory where the image is, then such script will be executed automatically. This type of startup is usually used to do something that is application-specific or something that only makes sense for the specific image you are using. Now you might ask why we don't search the image folder for multiple .st files.  This is because it is normal for the image folder to contain ==.st== files unrelated to preferences - such as from any file out.  Using one specific file =='startup.st'== avoids problems. Be careful if you already were sending your own =='startup.st'== as parameter to the VM because it will be executed twice. 
 
 You can query whether the ==StartupLoader== is enabled using the messages ==allowStartupScript== and you can change its status using ==allowStartupScript:== sent to the class ==StartupLoader==. 
 
-So you know where the system will search startup files. Now you can directly put your code there and it will be automatically executed during startup. Should we just write scripts there?  Of course not! We use StartUp Actions as we will explain next.
-
+So you know where the system will search startup files. Now you cannot just write any script. You should use StartUp Actions as we will explain next.
 
 !!! Startup Actions
 
@@ -115,8 +116,8 @@ items := OrderedCollection new.
 items add: (StartupAction
               name: 'Basic settings'
               code: [
-                  Author fullName: 'MarianoMartinezPeck'.
-                  Debugger alwaysOpenFullDebugger: true.]).
+                  Author fullName: 'YourName'.
+                  GTGenericStackDebugger alwaysOpenFullDebugger: true ]).
 StartupLoader default 
     addAtStartupInPreferenceVersionFolder: items 
     named: 'basicSettings.st'.
@@ -126,9 +127,7 @@ What we do first is to create an instance of ==StartupAction== using the message
 
 In this example, we just set the author identification to 'MarianoMartinezPeck' and we put a setting to always open the debugger (no pre-debugger window). So far nothing special. 
 
-
-The magic comes with the last line, the message ==addAtStartupInPreferenceVersionFolder: items named: aFileName==  receives a list of startup actions and a filename and stores the actions in a file with the passes argument. So in this case we have only one action called =='Basic Settings'== and it will be saved in a file called =='basicSettings.st'==. But where? 
-
+The magic comes with the last line, the message ==addAtStartupInPreferenceVersionFolder: items named: aFileName==  receives a list of startup actions and a filename and stores the actions in a file with the passed argument. So in this case we have only one action called =='Basic Settings'== and it will be saved in a file called =='basicSettings.st'==. But where? 
 
 Since we used the message ==addAtStartupInPreferenceVersionFolder:named:==  (notice the ==InPreferenceVersionFolder==), it will be created in the following place ==pharo/pharoVersionNumber/==. The message ==addAtStartupInGeneralPreferenceFolder:named:== stores files in the general folder (==pharo==) and the ==addAtStartupInImageDirectory:== stores besides the image. 
 
@@ -138,20 +137,20 @@ Notice that with the first two messages we can specify the file name but with th
 
 !!! StartupLoader
 
-We saw that when executing the message ==addAtStartupInPreferenceVersionFolder:named:== or any of its variant, a file is created with the code we want to evaluate. Then, when the system starts it will find our file and execute our code. But, how is the resulting file? Exactly as the code we provided? No! Look how our example file is generated. You can find it using the following expression: ==StartupLoader preferencesVersionFolder /' basicSettings.st'==
+We saw that when executing the message ==addAtStartupInPreferenceVersionFolder:named:== or any of its variant, a file is created with the code we want to evaluate. Then, when the system starts it will find our file and execute our code. But, how is the resulting file? Exactly as the code we provided? No! Look how our example file is generated. You can find it using the following expression: ==StartupLoader preferencesVersionFolder / 'basicSettings.st'==
 
 You should get a result similar to the following one:
 [[[
 StartupLoader default executeAtomicItems: {
         StartupAction 
 			name: 'Basic settings' 
-			code: [ Author fullName: 'MarianoMartinezPeck'. 
-			Debugger alwaysOpenFullDebugger: true ].
+			code: [ Author fullName: 'YourName'. 
+			GTGenericStackDebugger alwaysOpenFullDebugger: true ].
 }.
 ]]]
 
 
-So as you can see, the file is generated by sending a collection of actions to ==StartupLoader default executeAtomicItems:==. In this example the collection has only one action, but it would have more if our example has more. So now the StartupLoader will execute all the actions found in the file. 
+So as you can see, the file is generated by sending a collection of actions to ==StartupLoader default executeAtomicItems:==. In this example the collection has only one action, but it would have more if our example had more. So now the StartupLoader will execute all the actions found in the file. 
 
 !!! Controlling action execution and errors
 
@@ -164,28 +163,26 @@ If an action generates an error the action is not registered as executed. In add
 To try out your startup scripts you can simply to do the following: create them, add them to the place of your choices and send the message ==loadStartupScript== the ==StartupLoader== singleton. The following example shows this process. 
 
 [[[
-	| item1 item2 |
-		item1 := StartupAction name: 'Open Help' code: [Workspace openContents: 'Here is just an example of how to use the StartupLoader. It should only be displayed once. You can also see StartupLoader class>>#example'
-	label: 'Help'] runOnce: true.
-		item2 := StartupAction name: 'Open Workspace' code:  [ Workspace openContents: 'I should be displayed each time' ].
-		StartupLoader default addAtStartupInGeneralPreferenceFolder: {item1. item2}.
-
-		StartupLoader default loadStartupScript.
+| item1 item2 |
+item1 := StartupAction name: 'Open Help' code: [Workspace openContents: 'Here is just an example of how to use the StartupLoader. It should only be displayed once. You can also see StartupLoader class>>#example' 
+label: 'Help'] runOnce: true.
+item2 := StartupAction name: 'Open Workspace' code:  [ Workspace openContents: 'I should be displayed each time' ].
+StartupLoader default addAtStartupInGeneralPreferenceFolder: {item1. item2}.
+StartupLoader default loadStartupScript.
 ]]]
-
 
 !!! Some nice expressions
 
 Here are some nice expressions that you can use in a startup preferences. Have also a look at the Setting Browser.
 
-
+!!!! Debugger 
 You can set the debugger to never open the preview and to filter common message sends.
-[[[Debugger 
-	alwaysOpenFullDebugger: true;
-	filterCommonMessageSends: true.
+[[[
+GTGenericStackDebugger 
+	alwaysOpenFullDebugger: true
 ]]]
 	
-	
+!!!! Changing fonts
 You can change the fonts.
 
 [[[
@@ -193,55 +190,59 @@ StandardFonts defaultFont: (LogicalFont familyName: 'Consolas' pointSize: 10).
 GraphicFontSettings resetAllFontToDefault.
 ]]]
 
+!!!! Changing desktop
 You can change your desktop color and remove the Pharo logo.
 [[[
 PolymorphSystemSettings 
 	desktopColor: Color gray;
 	showDesktopLogo: false.
-UITheme currentSettings fastDragging: true.	
+UITheme currentSettings fastDragging: true.
 ]]]
 
+
+!!!! Changing syntax style
 You can customize the text editor as well as the style of the syntax highlighter.
 
 [[[
 TextEditorDialogWindow autoAccept: true.
-SHPreferences setStyleTableNamed: 'Tango'.]]]
+SHPreferences setStyleTableNamed: 'Solarized'.
+]]]
 
+!!!! Freetype
 You can enable the Free Type fonts.
 
 [[[
 FreeTypeSystemSettings loadFt2Library: true.
 ]]]
 
-You can also customize Nautilus
-[[[
-Nautilus pluginClasses add: { NautilusBreadcrumbsPlugin. #top }.
-Nautilus pluginClasses add: { AnnotationPanePlugin. #middle }.
-]]]
 
-
+!!!! Sharing 
 You can specialize Monticello to share your package cache. 
 
 [[[
-sharedPackageCacheDirectory := '/Users/ducasse/Pharo/localRepo/' asFileReference ensureCreateDirectory).
+| sharedPackageCacheDirectory |
+sharedPackageCacheDirectory := '/Users/ducasse/Pharo/localRepo/' asFileReference ensureCreateDirectory.
 MCCacheRepository default directory: sharedPackageCacheDirectory.
-MCDirectoryRepository defaultDirectoryName: '/Users/mariano/Pharo/localRepo/'.
+MCDirectoryRepository defaultDirectoryName: '/Users/ducasse/Pharo/localRepo/'.
 ]]]
 
+!!!! Password
 Setting the user and password of some Monticello repositories
 [[[
 (MCRepositoryGroup default repositories
-	select: [:each | (each isKindOf: MCHttpRepository)
-						and: [((each locationWithTrailingSlash includesSubString: 'www.squeaksource.com')
-								or: [each locationWithTrailingSlash includesSubString: 'http://ss3.gemstone.com/ss/'])]
-			]) do: [:each |
-						each
-							user: 'MMP';
-							password: ((FileDirectory default oldFileNamed: '/Users/mariano/Pharo/repositoriesPassword.txt') contents).]]
+	select: [:each | 
+		(each isKindOf: MCHttpRepository)
+			and: [((each locationWithTrailingSlash includesSubString: 'www.squeaksource.com')
+					or: [each locationWithTrailingSlash includesSubString: 'http://ss3.gemstone.com/ss/'])]
+			])
+	 do: [ :each |
+			each
+				user: 'YYY';
+				password: (FileLocator home / 'Mypass' /'mcrepositoriesPassword.txt') contents ]]
+]]]
 
-
+!!!! Password
 You can also add conditional actions based on the fact that the image is running in headless mode or not.
-
 [[[
 Smalltalk isHeadless ifFalse: [
 	StartupLoader default executeAtomicItems: {
