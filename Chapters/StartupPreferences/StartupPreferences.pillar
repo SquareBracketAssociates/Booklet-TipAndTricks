@@ -318,6 +318,15 @@ StartupPreferencesLoader default executeAtomicItems: {
 }.
 ]]]
 
+You can also add the repositories of your favorite projects as follow:
+
+[[[
+repo := IceRepositoryCreator new
+	    location: '../YourRepo' asFileReference;
+	    subdirectory: 'src';
+	    createRepository.
+repo register.
+]]]
 
 !!! How to split your settings in files and actions?
 
