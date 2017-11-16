@@ -4,3 +4,5 @@ If you have tips and tricks please share them with us.
 Thanks Cyril Ferlicot and Offray Vladimir Luna Cár.
 
 ${inputFile:Chapters/StartupPreferences/StartupPreferences.pillar}$
+
+${inputFile:Chapters/Hash/ComputingHash2.pillar}$
