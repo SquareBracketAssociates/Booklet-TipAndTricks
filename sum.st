@@ -1,0 +1,1 @@
+(ZnEasy getPng: 'http://pharo.org/files/pharo.png') asMorph openInWindow
