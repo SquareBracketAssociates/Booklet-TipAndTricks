@@ -1,15 +1,15 @@
 !! Tricks to compute hash numbers
 
-In Pharo every object has a hash number. This hash is important to be able to store objects in a bucket-based data structures such as dictionaries and sets. This is the same in Java or C\#.
+In Pharo, every object has a hash number. This hash is important to be able to store objects in bucket-based data structures such as dictionaries and sets. This is the same in Java or C\#.
 
-The question is then what are the common patterns to define hash. 
-Andrew Valloud wrote a complete book on the topics and here our intention is just of reflect on the XOR pattern as promoted by K. Beck's Best Smalltalk Practices. This chapter is based on exchange on the Pharo-dev mailing-list and in particular from David Allouche.
+The question is then: What are the common patterns to define hash?
+While Andres Valloud wrote a whole book on this topic, here our intention is just to reflect on the XOR pattern as promoted by K. Beck's Best Smalltalk Practices. This chapter is based on discussions on the Pharo-dev mailing-list and in particular from David Allouche.
 
 !!! Hash
 
-The hash number is a partial function from the object space to a given range (in recent 32-bits Pharo version 22 bits). It means that two objects may have the same hash but that the hash computation should try to minimise the occurrence of such a situation. 
+The hash number is a partial function from the object space to a given range (22 bits in recent 32-bit Pharo). It means that two objects may have the same hash but that the hash computation should try to minimise the occurrence of such a situation. 
 
-In Pharo, the method responsible for the hash number computation is the method ==hash== defined in the class ==Object==. In fact as programmers you should redefine this method when the method ==\=== is redefined.
+In Pharo, the method responsible for the hash number computation is the method ==hash== defined in the class ==Object==. In fact, as programmers you should redefine this method any time the method ==\=== is redefined.
 
 [[[
 Object >> hash
@@ -23,16 +23,16 @@ Object >> hash
 !!! Hash Properties 
 A good hash number should have the following properties:
 
-!!!! Property (A): Equal objects equal hashes
+!!!! Property (A): Equal hashes for equal objects
 
 Objects that are equal according to ==\=== must have equal hashes.
 
-Indeed you may end up having set behaving strangely because a set may compare an object it should add using one method and the other in its internal structure. This is why you should redefine ==hash== when you redefine ==\===.
+Otherwise set may behave strangely because it uses one calculation to place a newly-added object, add a different one to manage its internal structure. This is why you should redefine ==hash== whenever you redefine ==\===.
 
 
-In addition a hash number should have two desirable properties that are required to support the algorithmic assumptions of bucket-based data structures
+In addition, a hash number should have two desirable properties that are required to support the algorithmic assumptions of bucket-based data structures:
 
-!!!! Property (B): Not equal objects not equal hash
+!!!! Property (B): Different Hashes for Objects which are Not Equal
 Objects that are not equal should have different hashes. Ideally, the probability of hash collision should by 1/N where N is the size of hash value space.
 
 !!!! Property (C): Good hash spread
@@ -57,7 +57,7 @@ How these two desirable properties can be implemented depends on the actual dist
 
 An object can safely use XOR hashing if its instance variables are all different objects that already provide a hash method with these two properties. This pattern is described in Best Smalltalk Practices.
 
-Here a redefinition of equality and its counterpart for hash. 
+Here is a redefinition of equality and its counterpart for hash. 
 [[[
 Book >> = anotherBook
 
@@ -68,14 +68,14 @@ Book >> = anotherBook
 [[[
 Book >> hash
 
-	^ self title hash xor: self authors hash
+	^ self title hash bitXor: self authors hash
 ]]]
 
 @@todo check noury proposal here.
 
 
 
-!!!Need for more mix
+!!!Need for more mixing
 An object can safely use XOR hashing if its instance variables are all different objects that already provide a hash method with these two properties. But if the instance variables are not guaranteed to have those properties, it is necessary to more thoroughly "mix the bits". For example the  method ==hash== of ==SequenceableCollection== illustrates this point.
 
 
@@ -88,7 +88,7 @@ SequenceableCollection >> hash
 	^ hash
 ]]]
 
-The mixing of the bits is done by the combination of addition and ==hashMultiply==. The value of ==species hash== does not need to be processed by ==hashMultiply==, because it is probably computed by the method ==identityHash== of ==ProtoObject==, and that already provides good spread property.
+The mixing of the bits is done by the combination of addition and ==hashMultiply==. The value of ==species hash== does not need to be processed by ==hashMultiply==, because it is probably computed by the method ==identityHash== of ==ProtoObject==, and that already provides a good spread property.
 
 
 !!! When we should not use XOR
@@ -106,7 +106,7 @@ A good hash function for LayoutFrame needs to:
 
 Now, we can assume that common values for the instance variables will be instances of ==SmallInteger==, ==Float==, or ==Fraction==.
 
-You can see in ==Fraction>>hash==, that a comment mentions the assumption that the fraction is already reduced, that is what makes it acceptable to use bitXor.
+You can see in ==Fraction>>hash==, that a comment mentions the assumption that the fraction is already reduced. That is what makes it acceptable to use bitXor.
 
 [[[
 Fraction>>hash
@@ -135,11 +135,11 @@ Point >> hash
 	^(x hash hashMultiply + y hash) hashMultiply
 ]]]
 
-It does not include species in the computation, which is less than ideal because it favours collisions with objects of different species that have a similar content and a the same hash algorithm.
+It does not include species in the computation, which is less than ideal because it allows collisions with objects of different species that have a similar content and the same hash algorithm.
 
 Finally, it is probably not necessary or useful to use the accessors to get to the instance variables.
 
-So a good implementation for ==LayoutFrame== is
+So a good implementation for ==LayoutFrame== is:
 
 [[[
 LayoutFrame >> hash
@@ -158,5 +158,4 @@ LayoutFrame >> hash
 
 !!! Conclusion
 
-In this chapter, we presented the common XOR pattern to create good hash number when state 
-refers to distinct objects and we advocate to check properties and promote the use of hashMultiply to extend the range of hashs before combining them when objects composing the objects are too similar. 
+In this chapter, we presented the common XOR pattern to create a good hash number when an object's state refers to distinct objects. In other cases when instance variable values are too similar, we advocate checking properties and promote the use of hashMultiply to extend the range of hashes before combining them. 
