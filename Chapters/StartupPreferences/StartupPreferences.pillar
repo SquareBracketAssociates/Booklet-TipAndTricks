@@ -274,6 +274,19 @@ Smalltalk isHeadless ifFalse: [
 	]
 ]]]
 
+!!!! Predebug window
+The predebug window is a small window that pops up before the debugger. You can avoid it as follows: 
+
+[[[
+(Smalltalk globals at: #GTGenericStackDebugger)
+	perform: #enableDebuggerWindowDistinctColor: with: true.
+(Smalltalk globals at: #GTGenericStackDebugger)
+	perform: #enableStackColoring: with: true.
+(Smalltalk globals at: #GTGenericStackDebugger)
+	perform: #alwaysOpenFullDebugger: with: true.
+]]]
+
+
 !!!! Github
 
 You can also customise the git integration.
